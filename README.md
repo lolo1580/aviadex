@@ -70,6 +70,18 @@ docker tag aviadex:v1.0.1 harbor.kellerflix.org/aviadex/prod:v1.0.1
 docker push harbor.kellerflix.org/aviadex/prod:v1.0.1
 ```
 
+Run with Docker Compose:
+
+```bash
+docker compose --env-file example.env -f exemple.compose.yml up -d
+```
+
+Stop the Compose deployment:
+
+```bash
+docker compose --env-file example.env -f exemple.compose.yml down
+```
+
 ## Project Structure
 
 - `src/domain`: aircraft domain types and core concepts.

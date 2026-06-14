@@ -12,6 +12,7 @@ All notable changes to Aviadex will be documented in this file.
 - Admin bootstrap from environment variables.
 - Login/logout UI in the dashboard.
 - Docker Compose example with internal `postgres:17-alpine` and support for external `DATABASE_URL`.
+- README procedure for creating and resetting users in Docker Compose or external PostgreSQL.
 
 ### Changed
 

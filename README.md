@@ -94,6 +94,72 @@ docker compose --env-file example.env -f exemple.compose.yml down
 
 The example Compose file starts an internal `postgres:17-alpine` database. To use an external PostgreSQL server, change `DATABASE_URL` in `example.env` and remove or ignore the bundled `postgres` service.
 
+## User Management
+
+Aviadex stores users in PostgreSQL. Passwords are stored as bcrypt hashes in the `users.password_hash` column.
+
+On startup, Aviadex can create or update the first admin user from these environment variables:
+
+```bash
+AVIADEX_ADMIN_EMAIL=admin@aviadex.local
+AVIADEX_ADMIN_PASSWORD=change-this-password
+AVIADEX_ADMIN_DISPLAY_NAME=Aviadex Admin
+```
+
+To create another user manually, run the SQL below against the Aviadex database. The app migration enables `pgcrypto`, so PostgreSQL can generate a bcrypt-compatible hash with `crypt()`.
+
+### Docker Compose Postgres
+
+Open `psql` in the internal Compose database:
+
+```bash
+docker compose --env-file example.env -f exemple.compose.yml exec postgres \
+  psql -U aviadex -d aviadex
+```
+
+Create a user:
+
+```sql
+insert into users (email, display_name, password_hash, role)
+values (
+  'spotter@example.com',
+  'Spotter User',
+  crypt('replace-with-a-strong-password', gen_salt('bf', 12)),
+  'contributor'
+);
+```
+
+Available roles are currently `admin`, `curator`, `contributor`, and `viewer`.
+
+### External Or Non-Docker Postgres
+
+Connect with your external `DATABASE_URL`:
+
+```bash
+psql "$DATABASE_URL"
+```
+
+Create the user with the same SQL:
+
+```sql
+insert into users (email, display_name, password_hash, role)
+values (
+  'spotter@example.com',
+  'Spotter User',
+  crypt('replace-with-a-strong-password', gen_salt('bf', 12)),
+  'contributor'
+);
+```
+
+To reset an existing user's password:
+
+```sql
+update users
+set password_hash = crypt('new-strong-password', gen_salt('bf', 12)),
+    updated_at = now()
+where email = 'spotter@example.com';
+```
+
 ## Project Structure
 
 - `src/domain`: aircraft domain types and core concepts.

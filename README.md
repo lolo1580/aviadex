@@ -2,7 +2,7 @@
 
 Aviadex is an aviation collection and aircraft tracking platform for building a structured record of real-world aircraft sightings, photographs, and lifecycle history.
 
-Version: `v1.0.0`
+Version: `v1.0.1`
 
 ## Features
 
@@ -53,21 +53,21 @@ npm run preview
 Build the application image:
 
 ```bash
-docker build -t aviadex:v1.0.0 .
+docker build -t aviadex:v1.0.1 .
 ```
 
 Tag and push the development repository image:
 
 ```bash
-docker tag aviadex:v1.0.0 harbor.kellerflix.org/aviadex/dev:v1.0.0
-docker push harbor.kellerflix.org/aviadex/dev:v1.0.0
+docker tag aviadex:v1.0.1 harbor.kellerflix.org/aviadex/dev:v1.0.1
+docker push harbor.kellerflix.org/aviadex/dev:v1.0.1
 ```
 
 Tag and push the production repository image:
 
 ```bash
-docker tag aviadex:v1.0.0 harbor.kellerflix.org/aviadex/prod:v1.0.0
-docker push harbor.kellerflix.org/aviadex/prod:v1.0.0
+docker tag aviadex:v1.0.1 harbor.kellerflix.org/aviadex/prod:v1.0.1
+docker push harbor.kellerflix.org/aviadex/prod:v1.0.1
 ```
 
 ## Project Structure

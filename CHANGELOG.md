@@ -2,6 +2,13 @@
 
 All notable changes to Aviadex will be documented in this file.
 
+## v1.0.1 - 2026-06-14
+
+### Security
+
+- Updated Docker runtime image from `nginx:1.27-alpine` to current `nginx:alpine`.
+- Added `apk upgrade --no-cache` in the runtime stage to install fixed Alpine packages during image builds.
+
 ## v1.0.0 - 2026-06-14
 
 ### Added

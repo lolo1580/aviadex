@@ -1,13 +1,43 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: aviadex-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aviadex}
+      POSTGRES_USER: ${POSTGRES_USER:-aviadex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - aviadex-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aviadex} -d ${POSTGRES_DB:-aviadex}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   aviadex:
-    image: ${AVIADEX_IMAGE:-harbor.kellerflix.org/aviadex/prod:v1.0.1}
+    image: ${AVIADEX_IMAGE:-harbor.kellerflix.org/aviadex/prod:v1.1.0}
     container_name: aviadex
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://aviadex:change-me@postgres:5432/aviadex}
+      AVIADEX_ADMIN_EMAIL: ${AVIADEX_ADMIN_EMAIL:-admin@aviadex.local}
+      AVIADEX_ADMIN_PASSWORD: ${AVIADEX_ADMIN_PASSWORD:-change-this-password}
+      AVIADEX_ADMIN_DISPLAY_NAME: ${AVIADEX_ADMIN_DISPLAY_NAME:-Aviadex Admin}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-aviadex_session}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-14}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
     ports:
-      - "${AVIADEX_HTTP_PORT:-8080}:80"
+      - "${AVIADEX_HTTP_PORT:-8080}:3000"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/v1/health"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 10s
+
+volumes:
+  aviadex-postgres-data:

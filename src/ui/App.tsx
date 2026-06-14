@@ -3,14 +3,18 @@ import {
   ChevronRight,
   Filter,
   Languages,
+  LogIn,
+  LogOut,
   MapPinned,
   Plane,
   Search,
+  User,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { filterAircraft, getCollectionStats, type AircraftFilters } from "../application/aircraftSearch";
 import type { AircraftCollectionItem, Locale } from "../domain/aircraft";
 import { collection } from "../infrastructure/sampleData";
+import { getCurrentUser, login, logout, type AuthUser } from "./auth";
 import { AircraftSilhouette } from "./components/AircraftSilhouette";
 import { Metric } from "./components/Metric";
 import type { TranslationKey } from "./i18n/translations";
@@ -27,6 +31,9 @@ export function App() {
   const [locale, setLocale] = useState<Locale>("en");
   const [filters, setFilters] = useState<AircraftFilters>(emptyFilters);
   const [selectedId, setSelectedId] = useState(collection[0].id);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const { t } = useI18n(locale);
 
   const filteredAircraft = useMemo(
@@ -41,6 +48,42 @@ export function App() {
 
   function updateFilter(name: keyof AircraftFilters, value: string) {
     setFilters((current) => ({ ...current, [name]: value }));
+  }
+
+  useEffect(() => {
+    let isActive = true;
+
+    getCurrentUser()
+      .then((user) => {
+        if (isActive) {
+          setAuthUser(user);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setAuthError("Authentication service is unavailable.");
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setAuthLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  async function handleLogin(email: string, password: string) {
+    setAuthError(null);
+    const user = await login(email, password);
+    setAuthUser(user);
+  }
+
+  async function handleLogout() {
+    await logout();
+    setAuthUser(null);
   }
 
   return (
@@ -82,6 +125,14 @@ export function App() {
             {locale.toUpperCase()}
           </button>
         </header>
+
+        <AuthPanel
+          error={authError}
+          loading={authLoading}
+          user={authUser}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
+        />
 
         <section className="metrics" aria-label="Collection statistics">
           <Metric label={t("airframes")} value={stats.airframes} />
@@ -154,6 +205,96 @@ export function App() {
         </section>
       </section>
     </main>
+  );
+}
+
+interface AuthPanelProps {
+  error: string | null;
+  loading: boolean;
+  user: AuthUser | null;
+  onLogin: (email: string, password: string) => Promise<void>;
+  onLogout: () => Promise<void>;
+}
+
+function AuthPanel({ error, loading, user, onLogin, onLogout }: AuthPanelProps) {
+  const [email, setEmail] = useState("admin@aviadex.local");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  async function submitLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setFormError(null);
+
+    try {
+      await onLogin(email, password);
+      setPassword("");
+    } catch (loginError) {
+      setFormError(
+        loginError instanceof Error ? loginError.message : "Login failed.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="auth-panel" aria-label="Authentication">
+        <span className="auth-status">Checking session...</span>
+      </section>
+    );
+  }
+
+  if (user) {
+    return (
+      <section className="auth-panel authenticated" aria-label="Authentication">
+        <div className="auth-user">
+          <User size={18} />
+          <span>
+            <strong>{user.displayName}</strong>
+            <small>{user.email} · {user.role}</small>
+          </span>
+        </div>
+        <button className="auth-button secondary" type="button" onClick={onLogout}>
+          <LogOut size={16} />
+          Sign out
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="auth-panel" aria-label="Authentication">
+      <form className="login-form" onSubmit={submitLogin}>
+        <label>
+          <span>Email</span>
+          <input
+            autoComplete="email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+        </label>
+        <label>
+          <span>Password</span>
+          <input
+            autoComplete="current-password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+        </label>
+        <button className="auth-button" type="submit" disabled={submitting}>
+          <LogIn size={16} />
+          {submitting ? "Signing in..." : "Sign in"}
+        </button>
+      </form>
+      {(formError || error) && <p className="auth-error">{formError ?? error}</p>}
+    </section>
   );
 }
 

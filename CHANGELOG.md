@@ -2,6 +2,21 @@
 
 All notable changes to Aviadex will be documented in this file.
 
+## v1.1.0 - 2026-06-14
+
+### Added
+
+- PostgreSQL-backed login API under `/api/v1/auth`.
+- HttpOnly cookie sessions stored as hashed tokens in PostgreSQL.
+- Startup database migration for `users` and `auth_sessions`.
+- Admin bootstrap from environment variables.
+- Login/logout UI in the dashboard.
+- Docker Compose example with internal `postgres:17-alpine` and support for external `DATABASE_URL`.
+
+### Changed
+
+- Docker image now runs the Node/Express server instead of static Nginx-only hosting.
+
 ## v1.0.1 - 2026-06-14
 
 ### Security

@@ -1,5 +1,6 @@
 node_modules
 dist
+server-dist
 .git
 .gitignore
 .DS_Store
@@ -8,4 +9,3 @@ Dockerfile
 README.md
 CHANGELOG.md
 assets/reference
-

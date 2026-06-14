@@ -162,6 +162,121 @@ select {
   cursor: pointer;
 }
 
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d6e0e2;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.auth-panel.authenticated {
+  background: #f8fbfb;
+}
+
+.auth-status,
+.auth-error {
+  margin: 0;
+  color: #617174;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.auth-error {
+  color: #a13d1d;
+}
+
+.login-form {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(160px, 0.8fr) auto;
+  gap: 10px;
+  width: 100%;
+}
+
+.login-form label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid #cbd7d9;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.login-form label span {
+  color: #617174;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.login-form input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #172326;
+  font-size: 14px;
+}
+
+.auth-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #102327;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.auth-button.secondary {
+  border: 1px solid #cbd7d9;
+  background: #ffffff;
+  color: #172326;
+}
+
+.auth-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.auth-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.auth-user span,
+.auth-user strong,
+.auth-user small {
+  display: block;
+  min-width: 0;
+}
+
+.auth-user strong {
+  font-size: 14px;
+}
+
+.auth-user small {
+  margin-top: 3px;
+  color: #617174;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -627,10 +742,16 @@ select {
 
   .metrics,
   .control-strip,
+  .login-form,
   .content-grid,
   .lower-grid,
   .facts-grid {
     grid-template-columns: 1fr;
+  }
+
+  .auth-panel {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .profile-panel {

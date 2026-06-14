@@ -1,6 +1,7 @@
 export interface ServerConfig {
   port: number;
   databaseUrl: string;
+  databaseSchema: string;
   sessionCookieName: string;
   sessionTtlDays: number;
   secureCookies: boolean;
@@ -21,6 +22,7 @@ export function getConfig(): ServerConfig {
   return {
     port: Number(process.env.PORT ?? 3000),
     databaseUrl: requireEnv("DATABASE_URL"),
+    databaseSchema: process.env.DATABASE_SCHEMA ?? "aviadex",
     sessionCookieName: process.env.SESSION_COOKIE_NAME ?? "aviadex_session",
     sessionTtlDays: Number(process.env.SESSION_TTL_DAYS ?? 14),
     secureCookies: process.env.SECURE_COOKIES === "true",

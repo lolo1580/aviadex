@@ -45,7 +45,7 @@ app.post("/api/v1/auth/login", async (request, response) => {
     return;
   }
 
-  const user = await verifyPasswordLogin(pool, email, password);
+  const user = await verifyPasswordLogin(pool, config, email, password);
   if (!user) {
     response.status(401).json({ error: "Invalid email or password." });
     return;

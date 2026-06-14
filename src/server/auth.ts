@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import type { Request, Response } from "express";
 import type { ServerConfig } from "./config.js";
 import type { DatabasePool } from "./db.js";
+import { tableName } from "./schema.js";
 
 export interface AuthenticatedUser {
   id: string;
@@ -59,13 +60,16 @@ export function clearSessionCookie(response: Response, config: ServerConfig) {
 
 export async function verifyPasswordLogin(
   pool: DatabasePool,
+  config: ServerConfig,
   email: string,
   password: string,
 ): Promise<AuthenticatedUser | null> {
+  const usersTable = tableName(config.databaseSchema, "users");
+
   const result = await pool.query<UserRow>(
     `
       select id, email, display_name, password_hash, role
-      from users
+      from ${usersTable}
       where email = $1 and deleted_at is null
       limit 1
     `,
@@ -93,10 +97,11 @@ export async function createSession(
   const token = createSessionToken();
   const tokenHash = hashSessionToken(token);
   const expiresAt = sessionExpiresAt(config);
+  const sessionsTable = tableName(config.databaseSchema, "auth_sessions");
 
   await pool.query(
     `
-      insert into auth_sessions (user_id, token_hash, expires_at)
+      insert into ${sessionsTable} (user_id, token_hash, expires_at)
       values ($1, $2, $3)
     `,
     [userId, tokenHash, expiresAt],
@@ -115,11 +120,14 @@ export async function getSessionUser(
     return null;
   }
 
+  const usersTable = tableName(config.databaseSchema, "users");
+  const sessionsTable = tableName(config.databaseSchema, "auth_sessions");
+
   const result = await pool.query<UserRow>(
     `
       select users.id, users.email, users.display_name, users.role, users.password_hash
-      from auth_sessions
-      join users on users.id = auth_sessions.user_id
+      from ${sessionsTable} as auth_sessions
+      join ${usersTable} as users on users.id = auth_sessions.user_id
       where auth_sessions.token_hash = $1
         and auth_sessions.expires_at > now()
         and users.deleted_at is null
@@ -142,9 +150,10 @@ export async function deleteSession(
     return;
   }
 
-  await pool.query("delete from auth_sessions where token_hash = $1", [
-    hashSessionToken(token),
-  ]);
+  await pool.query(
+    `delete from ${tableName(config.databaseSchema, "auth_sessions")} where token_hash = $1`,
+    [hashSessionToken(token)],
+  );
 }
 
 export function serializeUser(user: AuthenticatedUser) {

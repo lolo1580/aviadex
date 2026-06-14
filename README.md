@@ -2,7 +2,7 @@
 
 Aviadex is an aviation collection and aircraft tracking platform for building a structured record of real-world aircraft sightings, photographs, and lifecycle history.
 
-Version: `v1.1.0`
+Version: `v1.1.1`
 
 ## Features
 
@@ -55,7 +55,7 @@ npm run preview
 Run the production server locally after a build:
 
 ```bash
-DATABASE_URL=postgres://aviadex:change-me@localhost:5432/aviadex npm start
+DATABASE_URL=postgres://aviadex:change-me@localhost:5432/aviadex DATABASE_SCHEMA=aviadex npm start
 ```
 
 ## Docker
@@ -63,21 +63,21 @@ DATABASE_URL=postgres://aviadex:change-me@localhost:5432/aviadex npm start
 Build the application image:
 
 ```bash
-docker build -t aviadex:v1.1.0 .
+docker build -t aviadex:v1.1.1 .
 ```
 
 Tag and push the development repository image:
 
 ```bash
-docker tag aviadex:v1.1.0 harbor.kellerflix.org/aviadex/dev:v1.1.0
-docker push harbor.kellerflix.org/aviadex/dev:v1.1.0
+docker tag aviadex:v1.1.1 harbor.kellerflix.org/aviadex/dev:v1.1.1
+docker push harbor.kellerflix.org/aviadex/dev:v1.1.1
 ```
 
 Tag and push the production repository image:
 
 ```bash
-docker tag aviadex:v1.1.0 harbor.kellerflix.org/aviadex/prod:v1.1.0
-docker push harbor.kellerflix.org/aviadex/prod:v1.1.0
+docker tag aviadex:v1.1.1 harbor.kellerflix.org/aviadex/prod:v1.1.1
+docker push harbor.kellerflix.org/aviadex/prod:v1.1.1
 ```
 
 Run with Docker Compose:
@@ -92,7 +92,27 @@ Stop the Compose deployment:
 docker compose --env-file example.env -f exemple.compose.yml down
 ```
 
-The example Compose file starts an internal `postgres:17-alpine` database. To use an external PostgreSQL server, change `DATABASE_URL` in `example.env` and remove or ignore the bundled `postgres` service.
+The example Compose file starts an internal `postgres:17-alpine` database. To use an external PostgreSQL server, change `DATABASE_URL` in `example.env`, set `DATABASE_SCHEMA`, and remove or ignore the bundled `postgres` service.
+
+## Database Setup
+
+Aviadex stores its tables in the schema named by `DATABASE_SCHEMA`, which defaults to `aviadex`. The internal Compose database works with the defaults.
+
+For an external PostgreSQL database, run this once as a database owner or administrator before starting Aviadex:
+
+```sql
+create user aviadex with password 'change-me';
+create database aviadex owner aviadex;
+\connect aviadex
+create schema if not exists aviadex authorization aviadex;
+grant usage, create on schema aviadex to aviadex;
+```
+
+If you want to keep the app in `public` instead, set `DATABASE_SCHEMA=public` and grant schema creation rights to the app role:
+
+```sql
+grant usage, create on schema public to aviadex;
+```
 
 ## User Management
 
@@ -106,7 +126,11 @@ AVIADEX_ADMIN_PASSWORD=change-this-password
 AVIADEX_ADMIN_DISPLAY_NAME=Aviadex Admin
 ```
 
-To create another user manually, run the SQL below against the Aviadex database. The app migration enables `pgcrypto`, so PostgreSQL can generate a bcrypt-compatible hash with `crypt()`.
+To create another user manually, run the SQL below against the Aviadex database. Install `pgcrypto` once as a database owner if you want PostgreSQL to generate a bcrypt-compatible hash with `crypt()`.
+
+```sql
+create extension if not exists pgcrypto;
+```
 
 ### Docker Compose Postgres
 
@@ -120,7 +144,7 @@ docker compose --env-file example.env -f exemple.compose.yml exec postgres \
 Create a user:
 
 ```sql
-insert into users (email, display_name, password_hash, role)
+insert into aviadex.users (email, display_name, password_hash, role)
 values (
   'spotter@example.com',
   'Spotter User',
@@ -142,7 +166,7 @@ psql "$DATABASE_URL"
 Create the user with the same SQL:
 
 ```sql
-insert into users (email, display_name, password_hash, role)
+insert into aviadex.users (email, display_name, password_hash, role)
 values (
   'spotter@example.com',
   'Spotter User',
@@ -154,7 +178,7 @@ values (
 To reset an existing user's password:
 
 ```sql
-update users
+update aviadex.users
 set password_hash = crypt('new-strong-password', gen_salt('bf', 12)),
     updated_at = now()
 where email = 'spotter@example.com';

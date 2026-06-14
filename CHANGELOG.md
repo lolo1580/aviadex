@@ -2,6 +2,19 @@
 
 All notable changes to Aviadex will be documented in this file.
 
+## v1.1.1 - 2026-06-14
+
+### Fixed
+
+- Avoided startup failures on hardened PostgreSQL installs by using a configurable `DATABASE_SCHEMA` instead of relying on `public`.
+- Removed application startup dependency on creating the `pgcrypto` extension.
+- Qualified login and session queries with the configured schema.
+
+### Changed
+
+- Docker Compose and environment examples now default to `DATABASE_SCHEMA=aviadex`.
+- README now documents one-time external PostgreSQL schema grants and the optional `pgcrypto` setup for manual password hashing.
+
 ## v1.1.0 - 2026-06-14
 
 ### Added

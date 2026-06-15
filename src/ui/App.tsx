@@ -13,7 +13,12 @@ import {
   Upload,
   User,
 } from "lucide-react";
+import L from "leaflet";
+import markerIcon2xUrl from "leaflet/dist/images/marker-icon-2x.png";
+import markerIconUrl from "leaflet/dist/images/marker-icon.png";
+import markerShadowUrl from "leaflet/dist/images/marker-shadow.png";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import { filterAircraft, getCollectionStats, type AircraftFilters } from "../application/aircraftSearch";
 import type { AircraftCollectionItem, AircraftStatus, Locale, Photo, Sighting } from "../domain/aircraft";
 import { AircraftSilhouette } from "./components/AircraftSilhouette";
@@ -38,6 +43,16 @@ const referenceTypes = [
   "locations",
   "airBases",
 ] as const;
+
+const aircraftMarkerIcon = L.icon({
+  iconUrl: markerIconUrl,
+  iconRetinaUrl: markerIcon2xUrl,
+  shadowUrl: markerShadowUrl,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 
 type ReferenceType = (typeof referenceTypes)[number];
 type ReferenceData = Record<ReferenceType, Record<string, unknown>[]>;
@@ -342,18 +357,7 @@ function CollectionPage({
 
 function MapPage({ markers, t }: { markers: MapMarker[]; t: (key: TranslationKey) => string }) {
   if (!markers.length) return <StatePanel message={t("mapEmpty")} />;
-  const minLat = Math.min(...markers.map((marker) => marker.latitude));
-  const maxLat = Math.max(...markers.map((marker) => marker.latitude));
-  const minLng = Math.min(...markers.map((marker) => marker.longitude));
-  const maxLng = Math.max(...markers.map((marker) => marker.longitude));
-
-  function left(marker: MapMarker) {
-    return maxLng === minLng ? 50 : ((marker.longitude - minLng) / (maxLng - minLng)) * 76 + 12;
-  }
-
-  function top(marker: MapMarker) {
-    return maxLat === minLat ? 50 : (1 - (marker.latitude - minLat) / (maxLat - minLat)) * 68 + 16;
-  }
+  const center = mapCenter(markers);
 
   return (
     <section className="panel map-page-panel">
@@ -361,18 +365,40 @@ function MapPage({ markers, t }: { markers: MapMarker[]; t: (key: TranslationKey
         <span>{t("locationMap")}</span>
         <strong>{markers.length} {t("markers")}</strong>
       </div>
-      <div className="map-viewport" data-map-provider="leaflet-ready">
+      <MapContainer className="map-viewport" center={center} zoom={markers.length === 1 ? 8 : 4} scrollWheelZoom>
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <FitMapToMarkers markers={markers} />
         {markers.map((marker) => (
-          <article className="map-popup" key={marker.id} style={{ left: `${left(marker)}%`, top: `${top(marker)}%` }}>
-            <MapPinned size={18} />
-            <strong>{marker.registration}</strong>
-            <span>{marker.locationName}</span>
-            <small>{formatDate(marker.sightingDate)} · {marker.photoCount} {t("photos")}</small>
-          </article>
+          <Marker icon={aircraftMarkerIcon} key={marker.id} position={[marker.latitude, marker.longitude]}>
+            <Popup>
+              <div className="map-popup-content">
+                <span><MapPinned size={16} /> {marker.registration}</span>
+                <strong>{marker.locationName}</strong>
+                <small>{formatDate(marker.sightingDate)} · {marker.photoCount} {t("photos")}</small>
+              </div>
+            </Popup>
+          </Marker>
         ))}
-      </div>
+      </MapContainer>
     </section>
   );
+}
+
+function FitMapToMarkers({ markers }: { markers: MapMarker[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!markers.length) return;
+    const bounds = L.latLngBounds(markers.map((marker) => [marker.latitude, marker.longitude] as [number, number]));
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [42, 42], maxZoom: 11 });
+    }
+  }, [map, markers]);
+
+  return null;
 }
 
 function TimelinePage({
@@ -920,6 +946,12 @@ function categoryOptions(t: (key: TranslationKey) => string): [string, string][]
 
 function statusOptions(t: (key: TranslationKey) => string): [string, string][] {
   return [["", t("allStatuses")], ["active", t("active")], ["stored", t("stored")], ["retired", t("retired")], ["preserved", t("preserved")], ["scrapped", t("scrapped")]];
+}
+
+function mapCenter(markers: MapMarker[]): [number, number] {
+  const latitude = markers.reduce((sum, marker) => sum + marker.latitude, 0) / markers.length;
+  const longitude = markers.reduce((sum, marker) => sum + marker.longitude, 0) / markers.length;
+  return [latitude, longitude];
 }
 
 function referenceLabel(type: ReferenceType, t: (key: TranslationKey) => string) {

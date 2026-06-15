@@ -786,51 +786,46 @@ input[type="file"] {
 }
 
 .map-viewport {
-  position: relative;
-  min-height: 520px;
+  width: 100%;
+  height: min(68vh, 660px);
+  min-height: 480px;
   overflow: hidden;
   border-radius: 8px;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.75) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.75) 1px, transparent 1px),
-    linear-gradient(135deg, #cfe4e5, #edf4ef);
-  background-size: 42px 42px, 42px 42px, auto;
+  background: #cfe4e5;
 }
 
-.map-viewport::before {
-  position: absolute;
-  inset: 12% 8% 14% 10%;
-  border-radius: 48% 52% 44% 56%;
-  background: rgba(16, 35, 39, 0.09);
-  content: "";
-  transform: rotate(-9deg);
+.map-viewport .leaflet-control-attribution {
+  font-size: 10px;
 }
 
-.map-popup {
-  position: absolute;
+.map-popup-content {
   display: grid;
   gap: 4px;
-  min-width: 168px;
-  max-width: 220px;
-  padding: 12px;
-  border: 1px solid rgba(16, 35, 39, 0.14);
-  border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 14px 28px rgba(16, 35, 39, 0.18);
-  transform: translate(-50%, -50%);
+  min-width: 180px;
 }
 
-.map-popup svg {
+.map-popup-content svg {
   color: #b86c11;
+  vertical-align: -3px;
 }
 
-.map-popup strong,
-.map-popup span,
-.map-popup small {
+.map-popup-content strong,
+.map-popup-content span,
+.map-popup-content small {
+  display: block;
   overflow-wrap: anywhere;
 }
 
-.map-popup small {
+.map-popup-content span {
+  color: #102327;
+  font-weight: 900;
+}
+
+.map-popup-content strong {
+  color: #172326;
+}
+
+.map-popup-content small {
   color: #617174;
   font-size: 12px;
 }
@@ -1066,11 +1061,8 @@ input[type="file"] {
   }
 
   .map-viewport {
-    min-height: 640px;
-  }
-
-  .map-popup {
-    min-width: 150px;
+    height: 520px;
+    min-height: 420px;
   }
 
   .timeline-list.global li {

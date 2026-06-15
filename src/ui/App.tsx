@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   CalendarDays,
   ChevronRight,
   Filter,
@@ -27,7 +28,7 @@ import { getCurrentUser, login, logout, type AuthUser } from "./auth";
 import type { TranslationKey } from "./i18n/translations";
 import { useI18n } from "./i18n/useI18n";
 
-const routes = ["/collection", "/map", "/timeline", "/reference"] as const;
+const routes = ["/collection", "/planepedia", "/map", "/timeline", "/reference"] as const;
 const appRoutes = [...routes, "/login"] as const;
 type Route = (typeof appRoutes)[number];
 
@@ -78,6 +79,24 @@ interface TimelineEvent {
   type: string;
   label: string;
   detail: string;
+}
+
+interface PlanepediaEntry {
+  id: string;
+  name: string;
+  category: string;
+  introducedYear?: number | null;
+  manufacturer: string;
+  manufacturerCountry?: string | null;
+  variants: Array<{
+    id: string;
+    name: string;
+    role: string;
+    firstFlightYear?: number | null;
+    introducedYear?: number | null;
+    specs: Record<string, unknown>;
+  }>;
+  aircraft: AircraftCollectionItem[];
 }
 
 export function App() {
@@ -264,6 +283,17 @@ export function App() {
             onSelect={setSelectedId}
             onUploaded={refreshCollection}
             onChanged={refreshCollection}
+          />
+        )}
+        {route !== "/login" && !loading && !error && route === "/planepedia" && (
+          <PlanepediaPage
+            collection={collection}
+            reference={reference}
+            t={t}
+            onOpenAircraft={(aircraftId) => {
+              setSelectedId(aircraftId);
+              navigate("/collection");
+            }}
           />
         )}
         {route !== "/login" && !loading && !error && route === "/map" && <MapPage markers={markers} t={t} />}
@@ -609,6 +639,137 @@ function MapPage({ markers, t }: { markers: MapMarker[]; t: (key: TranslationKey
           </Marker>
         ))}
       </MapContainer>
+    </section>
+  );
+}
+
+function PlanepediaPage({
+  collection,
+  reference,
+  t,
+  onOpenAircraft,
+}: {
+  collection: AircraftCollectionItem[];
+  reference: ReferenceData | null;
+  t: (key: TranslationKey) => string;
+  onOpenAircraft: (aircraftId: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const entries = useMemo(() => buildPlanepediaEntries(collection, reference), [collection, reference]);
+  const filtered = entries.filter((entry) => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return true;
+    return [
+      entry.name,
+      entry.manufacturer,
+      entry.category,
+      ...entry.variants.map((variant) => variant.name),
+      ...entry.aircraft.map((aircraft) => aircraft.currentRegistration),
+    ].some((value) => value.toLowerCase().includes(needle));
+  });
+  const [selectedId, setSelectedId] = useState("");
+  const selected = filtered.find((entry) => entry.id === selectedId) ?? filtered[0];
+
+  useEffect(() => {
+    if (selected && selected.id !== selectedId) {
+      setSelectedId(selected.id);
+    }
+  }, [selected, selectedId]);
+
+  if (!entries.length) {
+    return <StatePanel message={t("planepediaEmpty")} />;
+  }
+
+  return (
+    <section className="planepedia-layout">
+      <aside className="panel planepedia-index">
+        <div className="section-title">
+          <span>{t("planepedia")}</span>
+          <strong>{entries.length} {t("models")}</strong>
+        </div>
+        <label className="search-field">
+          <Search size={18} />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("planepediaSearch")} />
+        </label>
+        <div className="planepedia-list">
+          {filtered.map((entry) => (
+            <button className={selected?.id === entry.id ? "active" : ""} key={entry.id} type="button" onClick={() => setSelectedId(entry.id)}>
+              <span>
+                <strong>{entry.name}</strong>
+                <small>{entry.manufacturer} · {entry.category}</small>
+              </span>
+              <em>{entry.aircraft.length}</em>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      {selected ? (
+        <article className="planepedia-entry">
+          <header className="planepedia-hero">
+            <div className="planepedia-icon"><BookOpen size={28} /></div>
+            <div>
+              <p className="eyebrow">{selected.manufacturer}</p>
+              <h2>{selected.name}</h2>
+              <p>{selected.category} · {selected.introducedYear ? `${t("introduced")} ${selected.introducedYear}` : t("unknown")}</p>
+            </div>
+          </header>
+
+          <section className="record-summary-grid">
+            <Metric label={t("variants")} value={selected.variants.length} />
+            <Metric label={t("collectionMatches")} value={selected.aircraft.length} />
+            <Metric label={t("manufacturer")} value={selected.manufacturer} />
+            <Metric label={t("country")} value={selected.manufacturerCountry ?? "-"} />
+          </section>
+
+          <div className="planepedia-content-grid">
+            <section className="panel">
+              <div className="section-title"><span>{t("technicalData")}</span><strong>{selected.name}</strong></div>
+              {selected.variants.length ? (
+                <div className="variant-cards">
+                  {selected.variants.map((variant) => (
+                    <article className="variant-card" key={variant.id}>
+                      <h3>{variant.name}</h3>
+                      <p>{variant.role}</p>
+                      <dl className="facts-grid">
+                        <Fact label={t("firstFlight")} value={variant.firstFlightYear?.toString() ?? t("unknown")} />
+                        <Fact label={t("introduced")} value={variant.introducedYear?.toString() ?? t("unknown")} />
+                        <Fact label={t("engines")} value={formatSpec(variant.specs.engineSummary)} />
+                        <Fact label={t("speed")} value={formatSpecWithUnit(variant.specs.maxSpeedKmh, "km/h")} />
+                        <Fact label={t("range")} value={formatSpecWithUnit(variant.specs.rangeKm, "km")} />
+                        <Fact label={t("ceiling")} value={formatSpecWithUnit(variant.specs.serviceCeilingM, "m")} />
+                      </dl>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">{t("referenceEmpty")}</p>
+              )}
+            </section>
+
+            <section className="panel">
+              <div className="section-title"><span>{t("collectionMatches")}</span><strong>{selected.aircraft.length}</strong></div>
+              {selected.aircraft.length ? (
+                <div className="collection-match-list">
+                  {selected.aircraft.map((aircraft) => (
+                    <button key={aircraft.id} type="button" onClick={() => onOpenAircraft(aircraft.id)}>
+                      <span>
+                        <strong>{aircraft.currentRegistration}</strong>
+                        <small>{aircraft.variant.name} · {aircraft.serialNumber} · {aircraft.currentOperator}</small>
+                      </span>
+                      <ChevronRight size={16} />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">{t("noCollectionMatches")}</p>
+              )}
+            </section>
+          </div>
+        </article>
+      ) : (
+        <StatePanel message={t("noResults")} />
+      )}
     </section>
   );
 }
@@ -1154,6 +1315,7 @@ function getRoute(): Route {
 }
 
 function routeLabel(route: Route, t: (key: TranslationKey) => string) {
+  if (route === "/planepedia") return t("planepedia");
   if (route === "/map") return t("map");
   if (route === "/timeline") return t("timeline");
   if (route === "/reference") return t("reference");
@@ -1173,6 +1335,101 @@ function aircraftTabLabel(tab: AircraftTab, t: (key: TranslationKey) => string) 
 function countryOptions(aircraft: AircraftCollectionItem[], t: (key: TranslationKey) => string): [string, string][] {
   const countries = new Map(aircraft.map((item) => [item.currentCountryIso2, item.country.defaultName]));
   return [["", t("allCountries")], ...Array.from(countries.entries())];
+}
+
+function buildPlanepediaEntries(collection: AircraftCollectionItem[], reference: ReferenceData | null): PlanepediaEntry[] {
+  const entries = new Map<string, PlanepediaEntry>();
+  const manufacturers = new Map((reference?.manufacturers ?? []).map((row) => [String(row.id), row]));
+
+  for (const row of reference?.models ?? []) {
+    const manufacturer = manufacturers.get(String(row.manufacturer_id));
+    entries.set(String(row.id), {
+      id: String(row.id),
+      name: String(row.name),
+      category: String(row.category),
+      introducedYear: nullableNumber(row.introduced_year),
+      manufacturer: String(manufacturer?.name ?? row.manufacturer_id ?? "Unknown"),
+      manufacturerCountry: nullableText(manufacturer?.country_iso2),
+      variants: [],
+      aircraft: [],
+    });
+  }
+
+  for (const row of reference?.variants ?? []) {
+    const modelId = String(row.model_id);
+    const entry = entries.get(modelId);
+    if (!entry) continue;
+    entry.variants.push({
+      id: String(row.id),
+      name: String(row.name),
+      role: String(row.role),
+      firstFlightYear: nullableNumber(row.first_flight_year),
+      introducedYear: nullableNumber(row.introduced_year),
+      specs: parseSpecs(row.specs),
+    });
+  }
+
+  for (const aircraft of collection) {
+    const existing = entries.get(aircraft.model.id);
+    const entry =
+      existing ??
+      {
+        id: aircraft.model.id,
+        name: aircraft.model.name,
+        category: aircraft.model.category,
+        introducedYear: aircraft.model.introducedYear,
+        manufacturer: aircraft.manufacturer.name,
+        manufacturerCountry: aircraft.manufacturer.countryIso2,
+        variants: [],
+        aircraft: [],
+      };
+    if (!entry.variants.some((variant) => variant.id === aircraft.variant.id)) {
+      entry.variants.push({
+        id: aircraft.variant.id,
+        name: aircraft.variant.name,
+        role: aircraft.variant.role,
+        firstFlightYear: aircraft.variant.firstFlightYear,
+        introducedYear: aircraft.variant.introducedYear,
+        specs: aircraft.variant.specs as unknown as Record<string, unknown>,
+      });
+    }
+    entry.aircraft.push(aircraft);
+    entries.set(entry.id, entry);
+  }
+
+  return Array.from(entries.values()).sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function parseSpecs(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object") return value as Record<string, unknown>;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function nullableNumber(value: unknown) {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function nullableText(value: unknown) {
+  return typeof value === "string" && value ? value : null;
+}
+
+function formatSpec(value: unknown) {
+  return typeof value === "string" && value ? value : "-";
+}
+
+function formatSpecWithUnit(value: unknown, unit: string) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? `${parsed.toLocaleString()} ${unit}` : "-";
 }
 
 function categoryOptions(t: (key: TranslationKey) => string): [string, string][] {

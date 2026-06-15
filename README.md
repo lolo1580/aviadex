@@ -12,7 +12,8 @@ Current production image tags:
 ## Features
 
 - Aircraft collection dashboard with registration, serial, operator, country, category, and status filtering.
-- Route-backed pages for collection, map, timeline, and reference data.
+- Route-backed pages for collection, Planepedia, map, timeline, and reference data.
+- Planepedia model encyclopedia linking technical model/variant records to matching physical aircraft in the collection.
 - Physical aircraft record layout centered on the airframe as the primary record.
 - Aircraft detail view with identity hero, contextual metrics, and tabs for overview, photos, sightings, timeline, technical data, and admin workflows.
 - Variant-level technical reference data.
@@ -87,7 +88,7 @@ docker push harbor.kellerflix.org/aviadex/prod:latest
 The latest pushed digest for both production tags is:
 
 ```text
-sha256:d7f3742ccd3a7ac3c55b8c886ec04b00f7c2158fecc6b5103987540965255711
+sha256:29fc2014ce1dfd1280df535d6b49fda0fd419c141efcd590ad3adb840cf13acd
 ```
 
 Run with Docker Compose:

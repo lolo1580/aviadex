@@ -31,6 +31,10 @@ services:
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-aviadex_session}
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-14}
       SECURE_COOKIES: ${SECURE_COOKIES:-false}
+      UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-10485760}
+    volumes:
+      - aviadex-upload-data:/app/uploads
     ports:
       - "${AVIADEX_HTTP_PORT:-8080}:3000"
     healthcheck:
@@ -42,3 +46,4 @@ services:
 
 volumes:
   aviadex-postgres-data:
+  aviadex-upload-data:

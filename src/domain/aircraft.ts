@@ -74,11 +74,28 @@ export interface Sighting {
   date: string;
   location: string;
   countryIso2: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   event?: string;
   photographer: string;
   photoCount: number;
+  photos?: Photo[];
+}
+
+export interface Photo {
+  id: string;
+  sightingId: string;
+  aircraftId: string;
+  title: string;
+  caption: string;
+  takenAt?: string | null;
+  locationId?: string | null;
+  visibility: string;
+  url: string;
+  thumbnailUrl: string;
+  originalFilename: string;
+  contentType: string;
+  fileSize: number;
 }
 
 export interface PhysicalAircraft {

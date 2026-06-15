@@ -2,6 +2,46 @@
 
 All notable changes to Aviadex will be documented in this file.
 
+## Unreleased - 2026-06-15
+
+### Added
+
+- REST API coverage under `/api/v1` for collection, map, timeline, reference data, sightings, photos, and auth.
+- Route-backed React pages for `/collection`, `/map`, `/timeline`, and `/reference`.
+- Authenticated admin management for reference records, physical aircraft, sightings, and photo uploads.
+- Filesystem-backed photo uploads with PostgreSQL metadata instead of storing binary image data in the database.
+- Access-controlled media route for uploaded photos with private/public visibility handling.
+- Global timeline filtering by aircraft, event type, and date range.
+- Backend-ready sighting map marker data and marker rendering.
+- Startup seed data for initial normalized reference, aircraft, lifecycle, and sighting records.
+- `BUGS_AND_PROBLEMS.md` to track open issues, fixed issues, and remaining risks.
+
+### Changed
+
+- Upgraded Vite to `8.0.16` through audit remediation.
+- Docker Compose now passes upload configuration and mounts a persistent upload volume.
+- Admin bootstrap now preserves an existing admin password hash instead of overwriting it every startup.
+- README now documents current Harbor production tags, upload storage, and functional app behavior.
+
+### Fixed
+
+- Fixed startup failure caused by seeding a manufacturer country before the referenced country existed.
+- Added validation for numeric environment variables, date inputs, enum fields, coordinates, and variant `specs` JSON.
+- Added database constraints for aircraft status, lifecycle event type, photo visibility, coordinate ranges, and photo/sighting aircraft consistency.
+- Made photo upload all-or-nothing with a PostgreSQL transaction and cleanup for files written during failed uploads.
+- Mapped common PostgreSQL constraint and cast errors to consistent `400` or `409` JSON responses.
+- Added form-level errors and submitting states for admin reference, aircraft, sighting, and photo workflows.
+
+### Verified
+
+- `npm run build`
+- `npm audit --audit-level=moderate`
+- `docker build -t aviadex:five-points .`
+- Harbor images pushed:
+  - `harbor.kellerflix.org/aviadex/prod:v1.0.0`
+  - `harbor.kellerflix.org/aviadex/prod:latest`
+  - digest `sha256:afff0446d1eaa3400e9c230f6fb327fde3db173d4f83d32439ba1166d189d8f5`
+
 ## v1.1.1 - 2026-06-14
 
 ### Fixed

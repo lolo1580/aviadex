@@ -4,16 +4,24 @@ Aviadex is an aviation collection and aircraft tracking platform for building a 
 
 Version: `v1.1.1`
 
+Current production image tags:
+
+- `harbor.kellerflix.org/aviadex/prod:v1.0.0`
+- `harbor.kellerflix.org/aviadex/prod:latest`
+
 ## Features
 
 - Aircraft collection dashboard with registration, serial, operator, country, category, and status filtering.
+- Route-backed pages for collection, map, timeline, and reference data.
 - Physical aircraft profile centered on the airframe as the primary record.
 - Variant-level technical reference data.
-- Append-only style lifecycle timeline for registration, squadron, operator, status, and livery changes.
-- Sighting and photo evidence panels.
-- Map-style sighting location preview.
+- Global lifecycle timeline with aircraft, event type, and date range filters.
+- Sighting and photo evidence panels with upload support.
+- Authenticated admin forms for reference records, physical aircraft, and sightings.
+- Map-style sighting location page backed by stored coordinates.
 - English and French UI scaffolding.
 - PostgreSQL-backed login with HttpOnly session cookies.
+- Filesystem-backed photo storage with database metadata and private/public visibility handling.
 - Internal or external PostgreSQL deployment support.
 - Responsive layout for desktop and mobile.
 
@@ -66,18 +74,19 @@ Build the application image:
 docker build -t aviadex:v1.1.1 .
 ```
 
-Tag and push the development repository image:
-
-```bash
-docker tag aviadex:v1.1.1 harbor.kellerflix.org/aviadex/dev:v1.1.1
-docker push harbor.kellerflix.org/aviadex/dev:v1.1.1
-```
-
 Tag and push the production repository image:
 
 ```bash
-docker tag aviadex:v1.1.1 harbor.kellerflix.org/aviadex/prod:v1.1.1
-docker push harbor.kellerflix.org/aviadex/prod:v1.1.1
+docker tag aviadex:v1.1.1 harbor.kellerflix.org/aviadex/prod:v1.0.0
+docker tag aviadex:v1.1.1 harbor.kellerflix.org/aviadex/prod:latest
+docker push harbor.kellerflix.org/aviadex/prod:v1.0.0
+docker push harbor.kellerflix.org/aviadex/prod:latest
+```
+
+The latest pushed digest for both production tags is:
+
+```text
+sha256:afff0446d1eaa3400e9c230f6fb327fde3db173d4f83d32439ba1166d189d8f5
 ```
 
 Run with Docker Compose:
@@ -92,7 +101,20 @@ Stop the Compose deployment:
 docker compose --env-file example.env -f exemple.compose.yml down
 ```
 
-The example Compose file starts an internal `postgres:17-alpine` database. To use an external PostgreSQL server, change `DATABASE_URL` in `example.env`, set `DATABASE_SCHEMA`, and remove or ignore the bundled `postgres` service.
+The example Compose file starts an internal `postgres:17-alpine` database and mounts persistent volumes for PostgreSQL data and uploaded photos. To use an external PostgreSQL server, change `DATABASE_URL` in `example.env`, set `DATABASE_SCHEMA`, and remove or ignore the bundled `postgres` service.
+
+## Photo Storage
+
+Uploaded images are stored on disk under `UPLOAD_DIR`, which defaults to `uploads`. PostgreSQL stores file references and metadata only.
+
+For container deployments, mount `UPLOAD_DIR` to persistent storage. The example Compose file mounts `aviadex-upload-data` to `/app/uploads`.
+
+Useful environment variables:
+
+```bash
+UPLOAD_DIR=uploads
+MAX_UPLOAD_BYTES=10485760
+```
 
 ## Database Setup
 
@@ -118,13 +140,15 @@ grant usage, create on schema public to aviadex;
 
 Aviadex stores users in PostgreSQL. Passwords are stored as bcrypt hashes in the `users.password_hash` column.
 
-On startup, Aviadex can create or update the first admin user from these environment variables:
+On startup, Aviadex can create the first admin user from these environment variables:
 
 ```bash
 AVIADEX_ADMIN_EMAIL=admin@aviadex.local
 AVIADEX_ADMIN_PASSWORD=change-this-password
 AVIADEX_ADMIN_DISPLAY_NAME=Aviadex Admin
 ```
+
+If the admin already exists, Aviadex updates the display name, role, and deletion state, but it does not overwrite the existing password hash on every restart.
 
 To create another user manually, run the SQL below against the Aviadex database. Install `pgcrypto` once as a database owner if you want PostgreSQL to generate a bcrypt-compatible hash with `crypt()`.
 

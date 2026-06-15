@@ -34,9 +34,13 @@ export async function login(email: string, password: string): Promise<AuthUser> 
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as
-      | { error?: string }
+      | { error?: string | { message?: string } }
       | null;
-    throw new Error(payload?.error ?? "Login failed.");
+    const message =
+      typeof payload?.error === "string"
+        ? payload.error
+        : payload?.error?.message;
+    throw new Error(message ?? "Login failed.");
   }
 
   const payload = (await response.json()) as { user: AuthUser };

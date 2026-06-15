@@ -289,7 +289,11 @@ export function App() {
           <PlanepediaPage
             collection={collection}
             reference={reference}
+            user={authUser}
             t={t}
+            onSaved={async () => {
+              await Promise.all([refreshReference(), refreshCollection()]);
+            }}
             onOpenAircraft={(aircraftId) => {
               setSelectedId(aircraftId);
               navigate("/collection");
@@ -646,12 +650,16 @@ function MapPage({ markers, t }: { markers: MapMarker[]; t: (key: TranslationKey
 function PlanepediaPage({
   collection,
   reference,
+  user,
   t,
+  onSaved,
   onOpenAircraft,
 }: {
   collection: AircraftCollectionItem[];
   reference: ReferenceData | null;
+  user: AuthUser | null;
   t: (key: TranslationKey) => string;
+  onSaved: () => Promise<void>;
   onOpenAircraft: (aircraftId: string) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -766,11 +774,155 @@ function PlanepediaPage({
               )}
             </section>
           </div>
+          {user?.role === "admin" ? (
+            <PlanepediaAdminPanel entry={selected} reference={reference} t={t} onSaved={onSaved} />
+          ) : (
+            <section className="panel planepedia-admin-note">
+              <p className="empty-state subtle">{t("planepediaAdminOnly")}</p>
+            </section>
+          )}
         </article>
       ) : (
         <StatePanel message={t("noResults")} />
       )}
     </section>
+  );
+}
+
+function PlanepediaAdminPanel({ entry, reference, t, onSaved }: { entry: PlanepediaEntry; reference: ReferenceData | null; t: (key: TranslationKey) => string; onSaved: () => Promise<void> }) {
+  return (
+    <section className="panel planepedia-admin-panel">
+      <div className="section-title">
+        <span>{t("planepediaAdmin")}</span>
+        <strong>{entry.name}</strong>
+      </div>
+      <div className="planepedia-admin-grid">
+        <PlanepediaModelForm entry={entry} reference={reference} t={t} onSaved={onSaved} />
+        <PlanepediaVariantForm entry={entry} t={t} onSaved={onSaved} />
+      </div>
+    </section>
+  );
+}
+
+function PlanepediaModelForm({ entry, reference, t, onSaved }: { entry: PlanepediaEntry; reference: ReferenceData | null; t: (key: TranslationKey) => string; onSaved: () => Promise<void> }) {
+  const modelRows = reference?.models ?? [];
+  const currentModel = modelRows.find((row) => String(row.id) === entry.id);
+  const manufacturers = reference?.manufacturers ?? [];
+  const [mode, setMode] = useState<"edit" | "create">("edit");
+  const [values, setValues] = useState(() => ({
+    id: entry.id,
+    manufacturer_id: String(currentModel?.manufacturer_id ?? manufacturers[0]?.id ?? ""),
+    name: entry.name,
+    category: entry.category,
+    introduced_year: entry.introducedYear?.toString() ?? "",
+  }));
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setValues({
+      id: entry.id,
+      manufacturer_id: String(currentModel?.manufacturer_id ?? manufacturers[0]?.id ?? ""),
+      name: entry.name,
+      category: entry.category,
+      introduced_year: entry.introducedYear?.toString() ?? "",
+    });
+  }, [entry, currentModel?.manufacturer_id, manufacturers]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setStatus(null);
+    setError(null);
+    try {
+      await api(mode === "edit" ? `/api/v1/reference/models/${encodeURIComponent(entry.id)}` : "/api/v1/reference/models", {
+        method: mode === "edit" ? "PUT" : "POST",
+        body: JSON.stringify(values),
+        headers: { "Content-Type": "application/json" },
+      });
+      setStatus(t("saved"));
+      await onSaved();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : t("loadError"));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="admin-form" onSubmit={submit}>
+      <div className="section-title"><span>{t("editModel")}</span><strong>{entry.id}</strong></div>
+      <div className="form-grid compact-form-grid">
+        <SelectFilter label={t("mode")} value={mode} onChange={(value) => setMode(value as "edit" | "create")} options={[["edit", t("editSelected")], ["create", t("createNew")]]} />
+        <label><span>ID</span><input value={values.id} onChange={(event) => setValues((current) => ({ ...current, id: slugInput(event.target.value) }))} required disabled={mode === "edit"} /></label>
+        <SelectFilter label={t("manufacturer")} value={values.manufacturer_id} onChange={(manufacturerId) => setValues((current) => ({ ...current, manufacturer_id: manufacturerId }))} options={manufacturers.map((manufacturer) => [String(manufacturer.id), String(manufacturer.name)])} />
+        <label><span>{t("model")}</span><input value={values.name} onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))} required /></label>
+        <SelectFilter label={t("category")} value={values.category} onChange={(category) => setValues((current) => ({ ...current, category }))} options={categoryOptions(t).filter(([value]) => value)} />
+        <label><span>{t("introduced")}</span><input value={values.introduced_year} onChange={(event) => setValues((current) => ({ ...current, introduced_year: event.target.value }))} /></label>
+      </div>
+      <button className="auth-button" type="submit" disabled={submitting}><Save size={16} />{submitting ? t("saving") : t("saveModel")}</button>
+      {status && <p className="auth-status">{status}</p>}
+      {error && <p className="auth-error">{error}</p>}
+    </form>
+  );
+}
+
+function PlanepediaVariantForm({ entry, t, onSaved }: { entry: PlanepediaEntry; t: (key: TranslationKey) => string; onSaved: () => Promise<void> }) {
+  const selectedVariant = entry.variants[0];
+  const [mode, setMode] = useState<"edit" | "create">("edit");
+  const [variantId, setVariantId] = useState(selectedVariant?.id ?? "");
+  const activeVariant = entry.variants.find((variant) => variant.id === variantId) ?? selectedVariant;
+  const [values, setValues] = useState(() => variantFormValues(entry.id, activeVariant));
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setVariantId(selectedVariant?.id ?? "");
+  }, [entry.id, selectedVariant?.id]);
+
+  useEffect(() => {
+    setValues(variantFormValues(entry.id, activeVariant));
+  }, [entry.id, activeVariant]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setStatus(null);
+    setError(null);
+    try {
+      await api(mode === "edit" ? `/api/v1/reference/variants/${encodeURIComponent(variantId)}` : "/api/v1/reference/variants", {
+        method: mode === "edit" ? "PUT" : "POST",
+        body: JSON.stringify(values),
+        headers: { "Content-Type": "application/json" },
+      });
+      setStatus(t("saved"));
+      await onSaved();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : t("loadError"));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="admin-form" onSubmit={submit}>
+      <div className="section-title"><span>{t("editVariant")}</span><strong>{entry.name}</strong></div>
+      <div className="form-grid compact-form-grid">
+        <SelectFilter label={t("mode")} value={mode} onChange={(value) => setMode(value as "edit" | "create")} options={[["edit", t("editSelected")], ["create", t("createNew")]]} />
+        {mode === "edit" && <SelectFilter label={t("variant")} value={variantId} onChange={setVariantId} options={entry.variants.map((variant) => [variant.id, variant.name])} />}
+        <label><span>ID</span><input value={values.id} onChange={(event) => setValues((current) => ({ ...current, id: slugInput(event.target.value) }))} required disabled={mode === "edit"} /></label>
+        <label><span>{t("variant")}</span><input value={values.name} onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))} required /></label>
+        <label><span>{t("role")}</span><input value={values.role} onChange={(event) => setValues((current) => ({ ...current, role: event.target.value }))} required /></label>
+        <label><span>{t("firstFlight")}</span><input value={values.first_flight_year} onChange={(event) => setValues((current) => ({ ...current, first_flight_year: event.target.value }))} /></label>
+        <label><span>{t("introduced")}</span><input value={values.introduced_year} onChange={(event) => setValues((current) => ({ ...current, introduced_year: event.target.value }))} /></label>
+        <label className="wide-field"><span>specs JSON</span><input value={values.specs} onChange={(event) => setValues((current) => ({ ...current, specs: event.target.value }))} required /></label>
+      </div>
+      <button className="auth-button" type="submit" disabled={submitting || (mode === "edit" && !variantId)}><Save size={16} />{submitting ? t("saving") : t("saveVariant")}</button>
+      {status && <p className="auth-status">{status}</p>}
+      {error && <p className="auth-error">{error}</p>}
+    </form>
   );
 }
 
@@ -1484,6 +1636,26 @@ function sightingToMarker(sighting: Sighting): MapMarker {
     longitude: sighting.longitude ?? 0,
     photoCount: sighting.photoCount,
   };
+}
+
+function variantFormValues(modelId: string, variant?: PlanepediaEntry["variants"][number]) {
+  return {
+    id: variant?.id ?? "",
+    model_id: modelId,
+    name: variant?.name ?? "",
+    role: variant?.role ?? "",
+    first_flight_year: variant?.firstFlightYear?.toString() ?? "",
+    introduced_year: variant?.introducedYear?.toString() ?? "",
+    specs: JSON.stringify(variant?.specs ?? {}, null, 2),
+  };
+}
+
+function slugInput(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
 }
 
 function referenceLabel(type: ReferenceType, t: (key: TranslationKey) => string) {

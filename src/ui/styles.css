@@ -1199,6 +1199,25 @@ input[type="file"] {
   padding: 12px;
 }
 
+.planepedia-admin-note,
+.planepedia-admin-panel {
+  padding: 18px;
+}
+
+.planepedia-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.compact-form-grid {
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+}
+
+.wide-field {
+  grid-column: 1 / -1;
+}
+
 .reference-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -1441,6 +1460,8 @@ input[type="file"] {
   .overview-grid,
   .technical-grid,
   .planepedia-content-grid,
+  .planepedia-admin-grid,
+  .compact-form-grid,
   .content-grid,
   .lower-grid,
   .facts-grid {

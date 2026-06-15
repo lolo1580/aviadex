@@ -9,6 +9,7 @@ All notable changes to Aviadex will be documented in this file.
 - Functional REST API coverage under `/api/v1` for auth, collection, map, timeline, reference data, sightings, and photos.
 - Route-backed React pages for `/collection`, `/map`, `/timeline`, and `/reference`.
 - Planepedia page for model-level aircraft encyclopedia records with links to matching collection aircraft.
+- Admin create/edit workflows for Planepedia aircraft models and variants from the Planepedia page.
 - PostgreSQL-backed email/password login with HttpOnly session cookies.
 - Admin bootstrap from `AVIADEX_ADMIN_EMAIL`, `AVIADEX_ADMIN_PASSWORD`, and `AVIADEX_ADMIN_DISPLAY_NAME`.
 - Authenticated admin management for reference records, physical aircraft, sightings, and photo uploads.
@@ -48,4 +49,4 @@ All notable changes to Aviadex will be documented in this file.
 - Harbor images pushed:
   - `harbor.kellerflix.org/aviadex/prod:v1.0.0`
   - `harbor.kellerflix.org/aviadex/prod:latest`
-  - digest `sha256:29fc2014ce1dfd1280df535d6b49fda0fd419c141efcd590ad3adb840cf13acd`
+  - digest `sha256:6c3666580e0d12c96e5707e97fb05a99f80c863414c0d0807be65f90c4212880`

@@ -2,7 +2,7 @@
 
 Aviadex is an aviation collection and aircraft tracking platform for building a structured record of real-world aircraft sightings, photographs, and lifecycle history.
 
-Version: `v1.1.1`
+Version: `v1.0.0`
 
 Current production image tags:
 
@@ -71,14 +71,14 @@ DATABASE_URL=postgres://aviadex:change-me@localhost:5432/aviadex DATABASE_SCHEMA
 Build the application image:
 
 ```bash
-docker build -t aviadex:v1.1.1 .
+docker build -t aviadex:v1.0.0 .
 ```
 
 Tag and push the production repository image:
 
 ```bash
-docker tag aviadex:v1.1.1 harbor.kellerflix.org/aviadex/prod:v1.0.0
-docker tag aviadex:v1.1.1 harbor.kellerflix.org/aviadex/prod:latest
+docker tag aviadex:v1.0.0 harbor.kellerflix.org/aviadex/prod:v1.0.0
+docker tag aviadex:v1.0.0 harbor.kellerflix.org/aviadex/prod:latest
 docker push harbor.kellerflix.org/aviadex/prod:v1.0.0
 docker push harbor.kellerflix.org/aviadex/prod:latest
 ```

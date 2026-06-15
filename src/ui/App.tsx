@@ -33,6 +33,7 @@ type Route = (typeof appRoutes)[number];
 
 const emptyFilters: AircraftFilters = { query: "", country: "", category: "", status: "" };
 const eventTypes = ["registration", "operator", "squadron", "status", "livery", "sighting"];
+const aircraftTabs = ["overview", "photos", "sightings", "timeline", "technical", "admin"] as const;
 const referenceTypes = [
   "manufacturers",
   "models",
@@ -55,6 +56,7 @@ const aircraftMarkerIcon = L.icon({
 });
 
 type ReferenceType = (typeof referenceTypes)[number];
+type AircraftTab = (typeof aircraftTabs)[number];
 type ReferenceData = Record<ReferenceType, Record<string, unknown>[]>;
 
 interface MapMarker {
@@ -314,6 +316,8 @@ function CollectionPage({
   onUploaded: () => Promise<void>;
   onChanged: () => Promise<void>;
 }) {
+  const [activeTab, setActiveTab] = useState<AircraftTab>("overview");
+
   function updateFilter(name: keyof AircraftFilters, value: string) {
     onFilter({ ...filters, [name]: value });
   }
@@ -338,20 +342,242 @@ function CollectionPage({
       {aircraft.length === 0 || !selectedAircraft ? (
         <StatePanel message={t("noResults")} />
       ) : (
-        <>
-          <div className="content-grid">
+        <div className="aircraft-record-layout">
+          <div className="collection-rail">
             <AircraftList aircraft={aircraft} selectedId={selectedAircraft.id} onSelect={onSelect} />
-            <AircraftProfile aircraft={selectedAircraft} t={t} />
-            <ReferencePanel aircraft={selectedAircraft} t={t} />
           </div>
-          <section className="lower-grid">
-            <SightingsPanel aircraft={selectedAircraft} title={t("sightingEvidence")} t={t} />
-            <PhotoUploadPanel aircraft={selectedAircraft} user={user} t={t} onUploaded={onUploaded} />
-            <AdminCollectionPanel aircraft={selectedAircraft} reference={reference} user={user} t={t} onChanged={onChanged} />
-          </section>
-        </>
+          <AircraftRecord
+            aircraft={selectedAircraft}
+            activeTab={activeTab}
+            reference={reference}
+            user={user}
+            t={t}
+            onTab={setActiveTab}
+            onUploaded={onUploaded}
+            onChanged={onChanged}
+          />
+        </div>
       )}
     </>
+  );
+}
+
+function AircraftRecord({
+  aircraft,
+  activeTab,
+  reference,
+  user,
+  t,
+  onTab,
+  onUploaded,
+  onChanged,
+}: {
+  aircraft: AircraftCollectionItem;
+  activeTab: AircraftTab;
+  reference: ReferenceData | null;
+  user: AuthUser | null;
+  t: (key: TranslationKey) => string;
+  onTab: (tab: AircraftTab) => void;
+  onUploaded: () => Promise<void>;
+  onChanged: () => Promise<void>;
+}) {
+  const photos = aircraftPhotos(aircraft);
+  const latestSighting = latestAircraftSighting(aircraft);
+
+  return (
+    <section className="aircraft-record">
+      <header className="aircraft-hero">
+        <div className="aircraft-hero-media">
+          {photos[0] ? (
+            <img src={photos[0].thumbnailUrl} alt={photos[0].title} />
+          ) : (
+            <AircraftSilhouette />
+          )}
+        </div>
+        <div className="aircraft-hero-main">
+          <p className="eyebrow">{aircraft.manufacturer.name} · {aircraft.model.name}</p>
+          <h2>{aircraft.currentRegistration}</h2>
+          <p className="aircraft-variant-line">{aircraft.variant.name} · {aircraft.variant.role}</p>
+          <div className="identity-strip">
+            <Fact label={t("serial")} value={aircraft.serialNumber} />
+            <Fact label={t("operator")} value={aircraft.currentOperator} />
+            <Fact label={t("squadron")} value={aircraft.currentSquadron ?? t("unassigned")} />
+            <Fact label={t("status")} value={t(aircraft.currentStatus)} />
+          </div>
+        </div>
+        <div className="aircraft-hero-actions">
+          <span className="status-pill">{t(aircraft.currentStatus)}</span>
+          <button className="auth-button" type="button" onClick={() => onTab("photos")}>{t("uploadPhotos")}</button>
+          {user?.role === "admin" && (
+            <>
+              <button className="auth-button secondary" type="button" onClick={() => onTab("admin")}>{t("addSighting")}</button>
+              <button className="auth-button secondary" type="button" onClick={() => onTab("admin")}>{t("editAircraft")}</button>
+            </>
+          )}
+        </div>
+      </header>
+
+      <section className="record-summary-grid" aria-label={t("aircraftRecordSummary")}>
+        <Metric label={t("photos")} value={photos.length} />
+        <Metric label={t("sightings")} value={aircraft.sightings.length} />
+        <Metric label={t("timeline")} value={aircraft.history.length + aircraft.sightings.length} />
+        <Metric label={t("lastSighting")} value={latestSighting ? formatDate(latestSighting.date) : "-"} />
+      </section>
+
+      <nav className="record-tabs" aria-label={t("aircraftRecordTabs")}>
+        {aircraftTabs.map((tab) => (
+          <button className={activeTab === tab ? "active" : ""} key={tab} type="button" onClick={() => onTab(tab)}>
+            {aircraftTabLabel(tab, t)}
+          </button>
+        ))}
+      </nav>
+
+      <div className="record-tab-panel">
+        {activeTab === "overview" && <AircraftOverviewTab aircraft={aircraft} photos={photos} t={t} onTab={onTab} />}
+        {activeTab === "photos" && <AircraftPhotosTab aircraft={aircraft} photos={photos} user={user} t={t} onUploaded={onUploaded} />}
+        {activeTab === "sightings" && <AircraftSightingsTab aircraft={aircraft} t={t} />}
+        {activeTab === "timeline" && <AircraftTimelineTab aircraft={aircraft} t={t} />}
+        {activeTab === "technical" && <AircraftTechnicalTab aircraft={aircraft} t={t} />}
+        {activeTab === "admin" && <AdminCollectionPanel aircraft={aircraft} reference={reference} user={user} t={t} onChanged={onChanged} />}
+      </div>
+    </section>
+  );
+}
+
+function AircraftOverviewTab({ aircraft, photos, t, onTab }: { aircraft: AircraftCollectionItem; photos: Photo[]; t: (key: TranslationKey) => string; onTab: (tab: AircraftTab) => void }) {
+  return (
+    <div className="overview-grid">
+      <section className="panel profile-panel">
+        <div className="section-title"><span>{t("aircraftIdentity")}</span><strong>{aircraft.currentCountryIso2}</strong></div>
+        <dl className="facts-grid">
+          <Fact label={t("registration")} value={aircraft.currentRegistration} />
+          <Fact label={t("serial")} value={aircraft.serialNumber} />
+          <Fact label={t("operator")} value={aircraft.currentOperator} />
+          <Fact label={t("squadron")} value={aircraft.currentSquadron ?? t("unassigned")} />
+          <Fact label={t("livery")} value={aircraft.livery} />
+          <Fact label={t("built")} value={aircraft.builtYear?.toString() ?? t("unknown")} />
+        </dl>
+        <p className="notes">{aircraft.notes}</p>
+      </section>
+      <section className="panel">
+        <div className="section-title"><span>{t("recentPhotos")}</span><button className="text-action" type="button" onClick={() => onTab("photos")}>{t("viewAll")}</button></div>
+        <PhotoGallery photos={photos.slice(0, 6)} t={t} />
+      </section>
+      <section className="panel">
+        <div className="section-title"><span>{t("recentTimeline")}</span><button className="text-action" type="button" onClick={() => onTab("timeline")}>{t("viewAll")}</button></div>
+        <AircraftTimelineTab aircraft={aircraft} t={t} limit={5} />
+      </section>
+    </div>
+  );
+}
+
+function AircraftPhotosTab({ aircraft, photos, user, t, onUploaded }: { aircraft: AircraftCollectionItem; photos: Photo[]; user: AuthUser | null; t: (key: TranslationKey) => string; onUploaded: () => Promise<void> }) {
+  return (
+    <div className="record-stack">
+      <section className="panel">
+        <div className="section-title"><span>{t("photoGallery")}</span><strong>{photos.length} {t("photos")}</strong></div>
+        <PhotoGallery photos={photos} t={t} />
+      </section>
+      <PhotoUploadPanel aircraft={aircraft} user={user} t={t} onUploaded={onUploaded} />
+    </div>
+  );
+}
+
+function PhotoGallery({ photos, t }: { photos: Photo[]; t: (key: TranslationKey) => string }) {
+  if (!photos.length) return <p className="empty-state">{t("photoEmpty")}</p>;
+  return (
+    <div className="photo-grid gallery-grid">
+      {photos.map((photo) => (
+        <figure key={photo.id}>
+          <img src={photo.thumbnailUrl} alt={photo.title} />
+          <figcaption>
+            <strong>{photo.title}</strong>
+            <span>{photo.takenAt ? formatDate(photo.takenAt) : t("dateUnknown")} · {photo.visibility}</span>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+function AircraftSightingsTab({ aircraft, t }: { aircraft: AircraftCollectionItem; t: (key: TranslationKey) => string }) {
+  const locations = new Set(aircraft.sightings.map((sighting) => sighting.location));
+  const first = aircraft.sightings.at(-1);
+  const latest = latestAircraftSighting(aircraft);
+  const markers = aircraft.sightings.filter((sighting) => sighting.latitude != null && sighting.longitude != null);
+
+  return (
+    <div className="sightings-workspace">
+      <section className="record-summary-grid compact">
+        <Metric label={t("sightings")} value={aircraft.sightings.length} />
+        <Metric label={t("locations")} value={locations.size} />
+        <Metric label={t("photos")} value={aircraftPhotos(aircraft).length} />
+        <Metric label={t("firstLast")} value={`${first ? formatDate(first.date) : "-"} / ${latest ? formatDate(latest.date) : "-"}`} />
+      </section>
+      <section className="panel sightings-map-card">
+        <div className="section-title"><span>{t("locationMap")}</span><strong>{markers.length} {t("markers")}</strong></div>
+        {markers.length ? (
+          <MapContainer className="map-viewport aircraft-map" center={mapCenter(markers.map(sightingToMarker))} zoom={markers.length === 1 ? 8 : 4} scrollWheelZoom>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <FitMapToMarkers markers={markers.map(sightingToMarker)} />
+            {markers.map((sighting) => (
+              <Marker icon={aircraftMarkerIcon} key={sighting.id} position={[sighting.latitude!, sighting.longitude!]}>
+                <Popup>
+                  <div className="map-popup-content">
+                    <span><MapPinned size={16} /> {aircraft.currentRegistration}</span>
+                    <strong>{sighting.location}</strong>
+                    <small>{formatDate(sighting.date)} · {sighting.photoCount} {t("photos")}</small>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+        ) : (
+          <p className="empty-state">{t("mapEmpty")}</p>
+        )}
+      </section>
+      <SightingsPanel aircraft={aircraft} title={t("sightingChronology")} t={t} />
+    </div>
+  );
+}
+
+function AircraftTimelineTab({ aircraft, t, limit }: { aircraft: AircraftCollectionItem; t: (key: TranslationKey) => string; limit?: number }) {
+  const events = aircraftTimelineEvents(aircraft).slice(0, limit);
+  if (!events.length) return <p className="empty-state">{t("timelineEmpty")}</p>;
+  return (
+    <ol className="timeline-list aircraft-history-list">
+      {events.map((event) => (
+        <li key={`${event.type}-${event.id}`}>
+          <time>{formatDate(event.date)}</time>
+          <span>
+            <strong>{event.label}</strong>
+            <small>{event.type} · {event.detail || t("noDetail")}</small>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function AircraftTechnicalTab({ aircraft, t }: { aircraft: AircraftCollectionItem; t: (key: TranslationKey) => string }) {
+  return (
+    <div className="technical-grid">
+      <ReferencePanel aircraft={aircraft} t={t} />
+      <section className="panel profile-panel">
+        <div className="section-title"><span>{t("modelReference")}</span><strong>{aircraft.model.category}</strong></div>
+        <dl className="facts-grid">
+          <Fact label={t("manufacturer")} value={aircraft.manufacturer.name} />
+          <Fact label={t("model")} value={aircraft.model.name} />
+          <Fact label={t("variant")} value={aircraft.variant.name} />
+          <Fact label={t("country")} value={aircraft.country.defaultName} />
+          <Fact label={t("role")} value={aircraft.variant.role} />
+          <Fact label={t("built")} value={aircraft.builtYear?.toString() ?? t("unknown")} />
+        </dl>
+      </section>
+    </div>
   );
 }
 
@@ -935,6 +1161,15 @@ function routeLabel(route: Route, t: (key: TranslationKey) => string) {
   return t("collection");
 }
 
+function aircraftTabLabel(tab: AircraftTab, t: (key: TranslationKey) => string) {
+  if (tab === "overview") return t("overview");
+  if (tab === "photos") return t("photos");
+  if (tab === "sightings") return t("sightings");
+  if (tab === "timeline") return t("timeline");
+  if (tab === "technical") return t("technicalData");
+  return t("admin");
+}
+
 function countryOptions(aircraft: AircraftCollectionItem[], t: (key: TranslationKey) => string): [string, string][] {
   const countries = new Map(aircraft.map((item) => [item.currentCountryIso2, item.country.defaultName]));
   return [["", t("allCountries")], ...Array.from(countries.entries())];
@@ -952,6 +1187,46 @@ function mapCenter(markers: MapMarker[]): [number, number] {
   const latitude = markers.reduce((sum, marker) => sum + marker.latitude, 0) / markers.length;
   const longitude = markers.reduce((sum, marker) => sum + marker.longitude, 0) / markers.length;
   return [latitude, longitude];
+}
+
+function aircraftPhotos(aircraft: AircraftCollectionItem) {
+  return aircraft.sightings.flatMap((sighting) => sighting.photos ?? []);
+}
+
+function latestAircraftSighting(aircraft: AircraftCollectionItem) {
+  return [...aircraft.sightings].sort((left, right) => right.date.localeCompare(left.date))[0];
+}
+
+function aircraftTimelineEvents(aircraft: AircraftCollectionItem) {
+  return [
+    ...aircraft.history.map((event) => ({
+      id: event.id,
+      date: event.date,
+      type: event.type,
+      label: event.label,
+      detail: event.detail,
+    })),
+    ...aircraft.sightings.map((sighting) => ({
+      id: sighting.id,
+      date: sighting.date,
+      type: "sighting",
+      label: sighting.event ? `${sighting.event} · ${sighting.location}` : `Sighting at ${sighting.location}`,
+      detail: `${sighting.photoCount} photos · ${sighting.photographer || "Unknown photographer"}`,
+    })),
+  ].sort((left, right) => left.date.localeCompare(right.date));
+}
+
+function sightingToMarker(sighting: Sighting): MapMarker {
+  return {
+    id: sighting.id,
+    aircraftId: "",
+    registration: "",
+    locationName: sighting.location,
+    sightingDate: sighting.date,
+    latitude: sighting.latitude ?? 0,
+    longitude: sighting.longitude ?? 0,
+    photoCount: sighting.photoCount,
+  };
 }
 
 function referenceLabel(type: ReferenceType, t: (key: TranslationKey) => string) {

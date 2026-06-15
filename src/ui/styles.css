@@ -438,6 +438,198 @@ input[type="file"] {
   gap: 14px;
 }
 
+.aircraft-record-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.collection-rail {
+  position: sticky;
+  top: 24px;
+  min-width: 0;
+}
+
+.aircraft-record {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.aircraft-hero {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #d6e0e2;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(16, 35, 39, 0.06);
+}
+
+.aircraft-hero-media {
+  display: grid;
+  min-height: 210px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(16, 35, 39, 0.94), rgba(25, 74, 79, 0.9)),
+    radial-gradient(circle at 70% 20%, rgba(241, 166, 64, 0.22), transparent 36%);
+  color: #dceaea;
+}
+
+.aircraft-hero-media img {
+  width: 100%;
+  height: 100%;
+  min-height: 210px;
+  object-fit: cover;
+}
+
+.aircraft-hero-main {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #617174;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.aircraft-hero-main h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(46px, 6vw, 86px);
+  line-height: 0.9;
+  letter-spacing: 0;
+}
+
+.aircraft-variant-line {
+  margin: 12px 0 0;
+  color: #0d7779;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.identity-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.aircraft-hero-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 150px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #e6f4f3;
+  color: #0c6b66;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.record-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.record-summary-grid.compact {
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
+}
+
+.record-tabs {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 8px;
+  border: 1px solid #d6e0e2;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.record-tabs button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #526467;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.record-tabs button.active,
+.record-tabs button:hover {
+  border-color: #102327;
+  background: #102327;
+  color: #ffffff;
+}
+
+.record-tab-panel {
+  min-width: 0;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr);
+  gap: 14px;
+}
+
+.overview-grid > .panel,
+.record-stack > .panel,
+.sightings-workspace > .panel,
+.technical-grid > .panel,
+.record-tab-panel > .panel {
+  padding: 18px;
+}
+
+.overview-grid > .panel:first-child {
+  grid-row: span 2;
+}
+
+.record-stack,
+.sightings-workspace {
+  display: grid;
+  gap: 14px;
+}
+
+.technical-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+  gap: 14px;
+}
+
+.text-action {
+  border: 0;
+  background: transparent;
+  color: #0d7779;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .panel {
   min-width: 0;
   border: 1px solid #d6e0e2;
@@ -942,10 +1134,47 @@ input[type="file"] {
 }
 
 .photo-grid figcaption {
-  margin-top: 6px;
+  display: grid;
+  gap: 3px;
+  margin-top: 7px;
   color: #526467;
   font-size: 12px;
   font-weight: 800;
+}
+
+.photo-grid figcaption strong,
+.photo-grid figcaption span {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.photo-grid figcaption span {
+  color: #6a7a7d;
+  font-weight: 700;
+}
+
+.gallery-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.aircraft-history-list {
+  position: relative;
+}
+
+.aircraft-history-list li {
+  grid-template-columns: 112px minmax(0, 1fr);
+  padding: 12px 0;
+  border-top: 1px solid #e3ebec;
+}
+
+.aircraft-history-list li:first-child {
+  border-top: 0;
+}
+
+.sightings-map-card .aircraft-map {
+  height: 420px;
+  min-height: 360px;
 }
 
 .empty-state.subtle {
@@ -985,6 +1214,24 @@ input[type="file"] {
     grid-template-columns: 1fr 1fr;
   }
 
+  .aircraft-record-layout,
+  .aircraft-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .collection-rail {
+    position: static;
+  }
+
+  .aircraft-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .aircraft-hero-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
   .profile-panel {
     grid-column: span 2;
   }
@@ -1010,10 +1257,43 @@ input[type="file"] {
 
   .metrics,
   .control-strip,
+  .record-summary-grid,
+  .record-summary-grid.compact,
+  .overview-grid,
+  .technical-grid,
   .content-grid,
   .lower-grid,
   .facts-grid {
     grid-template-columns: 1fr;
+  }
+
+  .aircraft-list {
+    grid-template-columns: 1fr;
+  }
+
+  .aircraft-hero {
+    padding: 14px;
+  }
+
+  .aircraft-hero-main h2 {
+    font-size: 42px;
+  }
+
+  .identity-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .aircraft-hero-actions {
+    flex-direction: column;
+  }
+
+  .gallery-grid,
+  .photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-grid > .panel:first-child {
+    grid-row: auto;
   }
 
   .profile-panel {

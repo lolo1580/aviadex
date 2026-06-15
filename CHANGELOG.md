@@ -15,6 +15,8 @@ All notable changes to Aviadex will be documented in this file.
 - Access-controlled media route for uploaded photos with private/public visibility handling.
 - Global timeline filtering by aircraft, event type, and date range.
 - Backend-ready sighting map marker data and marker rendering.
+- OpenStreetMap-backed map rendering with Leaflet markers and sighting popups.
+- Aircraft record layout with identity hero, contextual metrics, and tabs for overview, photos, sightings, timeline, technical data, and admin.
 - Startup seed data for normalized reference, aircraft, lifecycle, and sighting records.
 - Docker Compose example with internal `postgres:17-alpine`, persistent PostgreSQL data, and persistent upload storage.
 - `BUGS_AND_PROBLEMS.md` to track open issues, fixed issues, and remaining risks.
@@ -25,6 +27,7 @@ All notable changes to Aviadex will be documented in this file.
 - Upgraded Vite to `8.0.16` through audit remediation.
 - Admin bootstrap preserves an existing admin password hash instead of overwriting it every startup.
 - README now documents current Harbor production tags, upload storage, database setup, and user management.
+- Collection detail UI now separates read-only aircraft consultation from admin editing workflows.
 
 ### Fixed
 
@@ -40,8 +43,7 @@ All notable changes to Aviadex will be documented in this file.
 
 - `npm run build`
 - `npm audit --audit-level=moderate`
-- `docker build -t aviadex:five-points .`
+- `docker build -t aviadex:v1.0.0 .`
 - Harbor images pushed:
   - `harbor.kellerflix.org/aviadex/prod:v1.0.0`
   - `harbor.kellerflix.org/aviadex/prod:latest`
-  - digest `sha256:afff0446d1eaa3400e9c230f6fb327fde3db173d4f83d32439ba1166d189d8f5`

@@ -23,7 +23,8 @@ import type { TranslationKey } from "./i18n/translations";
 import { useI18n } from "./i18n/useI18n";
 
 const routes = ["/collection", "/map", "/timeline", "/reference"] as const;
-type Route = (typeof routes)[number];
+const appRoutes = [...routes, "/login"] as const;
+type Route = (typeof appRoutes)[number];
 
 const emptyFilters: AircraftFilters = { query: "", country: "", category: "", status: "" };
 const eventTypes = ["registration", "operator", "squadron", "status", "livery", "sighting"];
@@ -81,7 +82,7 @@ export function App() {
   useEffect(() => {
     const onPopState = () => setRoute(getRoute());
     window.addEventListener("popstate", onPopState);
-    if (!routes.includes(getRoute())) {
+    if (!appRoutes.includes(getRoute())) {
       navigate("/collection", true);
     }
     return () => window.removeEventListener("popstate", onPopState);
@@ -132,6 +133,12 @@ export function App() {
     collection[0];
   const stats = useMemo(() => getCollectionStats(collection), [collection]);
 
+  useEffect(() => {
+    if (authUser && route === "/login") {
+      navigate("/collection", true);
+    }
+  }, [authUser, route]);
+
   function navigate(nextRoute: Route, replace = false) {
     window.history[replace ? "replaceState" : "pushState"](null, "", nextRoute);
     setRoute(nextRoute);
@@ -151,11 +158,13 @@ export function App() {
     setAuthError(null);
     const user = await login(email, password);
     setAuthUser(user);
+    navigate("/collection", true);
   }
 
   async function handleLogout() {
     await logout();
     setAuthUser(null);
+    if (route === "/login") navigate("/collection", true);
   }
 
   return (
@@ -198,6 +207,16 @@ export function App() {
                 <span>{authUser.displayName}</span>
               </div>
             )}
+            {authUser ? (
+              <button className="icon-action" type="button" onClick={handleLogout} aria-label={t("signOut")} title={t("signOut")}>
+                <LogOut size={17} />
+              </button>
+            ) : (
+              <button className="topbar-button" type="button" onClick={() => navigate("/login")}>
+                <LogIn size={17} />
+                {t("signIn")}
+              </button>
+            )}
             <button className="language-toggle" type="button" onClick={() => setLocale(locale === "en" ? "fr" : "en")}>
               <Languages size={17} />
               {locale.toUpperCase()}
@@ -205,17 +224,16 @@ export function App() {
           </div>
         </header>
 
-        <AuthPanel
-          error={authError}
-          user={authUser}
-          t={t}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-        />
-
-        {loading && <StatePanel message={t("loading")} />}
-        {error && <StatePanel message={error} tone="error" />}
-        {!loading && !error && route === "/collection" && (
+        {route === "/login" && (
+          <LoginPage
+            error={authError}
+            t={t}
+            onLogin={handleLogin}
+          />
+        )}
+        {route !== "/login" && loading && <StatePanel message={t("loading")} />}
+        {route !== "/login" && error && <StatePanel message={error} tone="error" />}
+        {route !== "/login" && !loading && !error && route === "/collection" && (
           <CollectionPage
             aircraft={filteredAircraft}
             allAircraft={collection}
@@ -231,8 +249,8 @@ export function App() {
             onChanged={refreshCollection}
           />
         )}
-        {!loading && !error && route === "/map" && <MapPage markers={markers} t={t} />}
-        {!loading && !error && route === "/timeline" && (
+        {route !== "/login" && !loading && !error && route === "/map" && <MapPage markers={markers} t={t} />}
+        {route !== "/login" && !loading && !error && route === "/timeline" && (
           <TimelinePage
             aircraft={collection}
             events={timeline}
@@ -241,7 +259,7 @@ export function App() {
             onFilters={setTimelineFilters}
           />
         )}
-        {!loading && !error && route === "/reference" && (
+        {route !== "/login" && !loading && !error && route === "/reference" && (
           <ReferencePage
             data={reference}
             t={t}
@@ -732,7 +750,7 @@ function PhotoUploadPanel({ aircraft, user, t, onUploaded }: { aircraft: Aircraf
   );
 }
 
-function AuthPanel({ error, user, t, onLogin, onLogout }: { error: string | null; user: AuthUser | null; t: (key: TranslationKey) => string; onLogin: (email: string, password: string) => Promise<void>; onLogout: () => Promise<void> }) {
+function LoginPage({ error, t, onLogin }: { error: string | null; t: (key: TranslationKey) => string; onLogin: (email: string, password: string) => Promise<void> }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -752,26 +770,29 @@ function AuthPanel({ error, user, t, onLogin, onLogout }: { error: string | null
     }
   }
 
-  if (user) {
-    return (
-      <section className="auth-panel authenticated" aria-label="Authentication">
-        <div className="auth-user">
-          <User size={18} />
-          <span><strong>{user.displayName}</strong><small>{user.email} · {user.role}</small></span>
-        </div>
-        <button className="auth-button secondary" type="button" onClick={onLogout}><LogOut size={16} />{t("signOut")}</button>
-      </section>
-    );
-  }
-
   return (
-    <section className="auth-panel" aria-label="Authentication">
-      <form className="login-form" onSubmit={submitLogin}>
-        <label><span>{t("email")}</span><input autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
-        <label><span>{t("password")}</span><input autoComplete="current-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
-        <button className="auth-button" type="submit" disabled={submitting}><LogIn size={16} />{submitting ? t("signingIn") : t("signIn")}</button>
-      </form>
-      {(formError || error) && <p className="auth-error">{formError ?? error}</p>}
+    <section className="login-page" aria-label={t("authentication")}>
+      <div className="login-card">
+        <div className="login-heading">
+          <span className="login-icon"><LogIn size={22} /></span>
+          <div>
+            <h2>{t("signInTitle")}</h2>
+            <p>{t("signInSubtitle")}</p>
+          </div>
+        </div>
+        <form className="login-page-form" onSubmit={submitLogin}>
+          <label>
+            <span>{t("email")}</span>
+            <input autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          </label>
+          <label>
+            <span>{t("password")}</span>
+            <input autoComplete="current-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+          </label>
+          <button className="auth-button" type="submit" disabled={submitting}><LogIn size={16} />{submitting ? t("signingIn") : t("signIn")}</button>
+        </form>
+        {(formError || error) && <p className="auth-error login-error">{formError ?? error}</p>}
+      </div>
     </section>
   );
 }
@@ -877,13 +898,14 @@ async function api<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 function getRoute(): Route {
-  return routes.includes(window.location.pathname as Route) ? (window.location.pathname as Route) : "/collection";
+  return appRoutes.includes(window.location.pathname as Route) ? (window.location.pathname as Route) : "/collection";
 }
 
 function routeLabel(route: Route, t: (key: TranslationKey) => string) {
   if (route === "/map") return t("map");
   if (route === "/timeline") return t("timeline");
   if (route === "/reference") return t("reference");
+  if (route === "/login") return t("signIn");
   return t("collection");
 }
 

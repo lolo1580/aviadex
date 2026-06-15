@@ -89,7 +89,7 @@ docker push harbor.kellerflix.org/aviadex/prod:latest
 The latest pushed digest for both production tags is:
 
 ```text
-sha256:6c3666580e0d12c96e5707e97fb05a99f80c863414c0d0807be65f90c4212880
+sha256:a02fdb901b30c792cdb33a7fd25d9bc4ad9201ef6beee9484365bccf475c5be3
 ```
 
 Run with Docker Compose:

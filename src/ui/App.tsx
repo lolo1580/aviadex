@@ -663,6 +663,7 @@ function PlanepediaPage({
   onOpenAircraft: (aircraftId: string) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [activePane, setActivePane] = useState<"overview" | "admin">("overview");
   const entries = useMemo(() => buildPlanepediaEntries(collection, reference), [collection, reference]);
   const filtered = entries.filter((entry) => {
     const needle = query.trim().toLowerCase();
@@ -730,51 +731,57 @@ function PlanepediaPage({
             <Metric label={t("country")} value={selected.manufacturerCountry ?? "-"} />
           </section>
 
-          <div className="planepedia-content-grid">
-            <section className="panel">
-              <div className="section-title"><span>{t("technicalData")}</span><strong>{selected.name}</strong></div>
-              {selected.variants.length ? (
-                <div className="variant-cards">
-                  {selected.variants.map((variant) => (
-                    <article className="variant-card" key={variant.id}>
-                      <h3>{variant.name}</h3>
-                      <p>{variant.role}</p>
-                      <dl className="facts-grid">
-                        <Fact label={t("firstFlight")} value={variant.firstFlightYear?.toString() ?? t("unknown")} />
-                        <Fact label={t("introduced")} value={variant.introducedYear?.toString() ?? t("unknown")} />
-                        <Fact label={t("engines")} value={formatSpec(variant.specs.engineSummary)} />
-                        <Fact label={t("speed")} value={formatSpecWithUnit(variant.specs.maxSpeedKmh, "km/h")} />
-                        <Fact label={t("range")} value={formatSpecWithUnit(variant.specs.rangeKm, "km")} />
-                        <Fact label={t("ceiling")} value={formatSpecWithUnit(variant.specs.serviceCeilingM, "m")} />
-                      </dl>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="empty-state">{t("referenceEmpty")}</p>
-              )}
-            </section>
+          <nav className="record-tabs" aria-label={t("planepediaTabs")}>
+            <button className={activePane === "overview" ? "active" : ""} type="button" onClick={() => setActivePane("overview")}>{t("overview")}</button>
+            <button className={activePane === "admin" ? "active" : ""} type="button" onClick={() => setActivePane("admin")}>{t("admin")}</button>
+          </nav>
 
-            <section className="panel">
-              <div className="section-title"><span>{t("collectionMatches")}</span><strong>{selected.aircraft.length}</strong></div>
-              {selected.aircraft.length ? (
-                <div className="collection-match-list">
-                  {selected.aircraft.map((aircraft) => (
-                    <button key={aircraft.id} type="button" onClick={() => onOpenAircraft(aircraft.id)}>
-                      <span>
-                        <strong>{aircraft.currentRegistration}</strong>
-                        <small>{aircraft.variant.name} · {aircraft.serialNumber} · {aircraft.currentOperator}</small>
-                      </span>
-                      <ChevronRight size={16} />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="empty-state">{t("noCollectionMatches")}</p>
-              )}
-            </section>
-          </div>
-          {user?.role === "admin" ? (
+          {activePane === "overview" ? (
+            <div className="planepedia-content-grid">
+              <section className="panel">
+                <div className="section-title"><span>{t("technicalData")}</span><strong>{selected.name}</strong></div>
+                {selected.variants.length ? (
+                  <div className="variant-cards">
+                    {selected.variants.map((variant) => (
+                      <article className="variant-card" key={variant.id}>
+                        <h3>{variant.name}</h3>
+                        <p>{variant.role}</p>
+                        <dl className="facts-grid">
+                          <Fact label={t("firstFlight")} value={variant.firstFlightYear?.toString() ?? t("unknown")} />
+                          <Fact label={t("introduced")} value={variant.introducedYear?.toString() ?? t("unknown")} />
+                          <Fact label={t("engines")} value={formatSpec(variant.specs.engineSummary)} />
+                          <Fact label={t("speed")} value={formatSpecWithUnit(variant.specs.maxSpeedKmh, "km/h")} />
+                          <Fact label={t("range")} value={formatSpecWithUnit(variant.specs.rangeKm, "km")} />
+                          <Fact label={t("ceiling")} value={formatSpecWithUnit(variant.specs.serviceCeilingM, "m")} />
+                        </dl>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="empty-state">{t("referenceEmpty")}</p>
+                )}
+              </section>
+
+              <section className="panel">
+                <div className="section-title"><span>{t("collectionMatches")}</span><strong>{selected.aircraft.length}</strong></div>
+                {selected.aircraft.length ? (
+                  <div className="collection-match-list">
+                    {selected.aircraft.map((aircraft) => (
+                      <button key={aircraft.id} type="button" onClick={() => onOpenAircraft(aircraft.id)}>
+                        <span>
+                          <strong>{aircraft.currentRegistration}</strong>
+                          <small>{aircraft.variant.name} · {aircraft.serialNumber} · {aircraft.currentOperator}</small>
+                        </span>
+                        <ChevronRight size={16} />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="empty-state">{t("noCollectionMatches")}</p>
+                )}
+              </section>
+            </div>
+          ) : user?.role === "admin" ? (
             <PlanepediaAdminPanel entry={selected} reference={reference} t={t} onSaved={onSaved} />
           ) : (
             <section className="panel planepedia-admin-note">

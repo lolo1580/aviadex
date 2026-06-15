@@ -47,3 +47,4 @@ All notable changes to Aviadex will be documented in this file.
 - Harbor images pushed:
   - `harbor.kellerflix.org/aviadex/prod:v1.0.0`
   - `harbor.kellerflix.org/aviadex/prod:latest`
+  - digest `sha256:d7f3742ccd3a7ac3c55b8c886ec04b00f7c2158fecc6b5103987540965255711`

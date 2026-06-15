@@ -13,12 +13,13 @@ Current production image tags:
 
 - Aircraft collection dashboard with registration, serial, operator, country, category, and status filtering.
 - Route-backed pages for collection, map, timeline, and reference data.
-- Physical aircraft profile centered on the airframe as the primary record.
+- Physical aircraft record layout centered on the airframe as the primary record.
+- Aircraft detail view with identity hero, contextual metrics, and tabs for overview, photos, sightings, timeline, technical data, and admin workflows.
 - Variant-level technical reference data.
 - Global lifecycle timeline with aircraft, event type, and date range filters.
-- Sighting and photo evidence panels with upload support.
-- Authenticated admin forms for reference records, physical aircraft, and sightings.
-- Map-style sighting location page backed by stored coordinates.
+- Sighting and photo evidence views with upload support.
+- Authenticated admin forms for reference records, physical aircraft, and sightings, separated from read-only consultation views.
+- OpenStreetMap-backed sighting map page with Leaflet markers and popups.
 - English and French UI scaffolding.
 - PostgreSQL-backed login with HttpOnly session cookies.
 - Filesystem-backed photo storage with database metadata and private/public visibility handling.
@@ -86,7 +87,7 @@ docker push harbor.kellerflix.org/aviadex/prod:latest
 The latest pushed digest for both production tags is:
 
 ```text
-sha256:afff0446d1eaa3400e9c230f6fb327fde3db173d4f83d32439ba1166d189d8f5
+sha256:d7f3742ccd3a7ac3c55b8c886ec04b00f7c2158fecc6b5103987540965255711
 ```
 
 Run with Docker Compose:
